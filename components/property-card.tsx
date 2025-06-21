@@ -2,14 +2,16 @@
 
 import { motion } from "framer-motion"
 import { BedDouble, Bath, Square, MapPin } from "lucide-react"
+import GoogleMap from "./google-map"
 import type { Property } from "@/app/page"
 
 interface PropertyCardProps {
   property: Property
   index: number
+  onClick?: () => void
 }
 
-export default function PropertyCard({ property, index }: PropertyCardProps) {
+export default function PropertyCard({ property, index, onClick }: PropertyCardProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("es-AR", {
       style: "currency",
@@ -46,11 +48,12 @@ export default function PropertyCard({ property, index }: PropertyCardProps) {
         y: -5,
         transition: { type: "spring", stiffness: 300 },
       }}
+      onClick={onClick}
     >
       {/* Imagen */}
       <div className="relative aspect-video">
         <img
-          src={property.image_url || "/placeholder.svg"}
+          src={property.images?.[0] || "/placeholder.svg?height=300&width=400"}
           alt={property.title}
           className="object-cover w-full h-full"
         />
@@ -67,13 +70,27 @@ export default function PropertyCard({ property, index }: PropertyCardProps) {
 
         <div className="flex items-center text-sm text-gray-500 mb-4">
           <MapPin className="h-4 w-4 mr-1" />
-          <span className="truncate">{property.address}</span>
+          <span className="truncate">
+            {property.address}, {property.city}
+          </span>
         </div>
 
-        <p className="text-2xl font-bold text-blue-600 mb-4">
+        <p className="text-2xl font-bold mb-4" style={{ color: "var(--color-primary)" }}>
           {formatPrice(property.price)}
           {property.status === "En Arriendo" && <span className="text-sm text-gray-500">/mes</span>}
         </p>
+
+        {/* Mapa pequeño si hay coordenadas */}
+        {property.latitude && property.longitude && (
+          <div className="mb-4">
+            <GoogleMap
+              latitude={property.latitude}
+              longitude={property.longitude}
+              address={property.address}
+              className="h-32 w-full"
+            />
+          </div>
+        )}
       </div>
 
       {/* Pie de la Tarjeta */}
@@ -90,17 +107,29 @@ export default function PropertyCard({ property, index }: PropertyCardProps) {
             </div>
             <div className="flex items-center">
               <Square className="h-4 w-4 mr-1" />
-              <span>{property.square_feet} m²</span>
+              <span>{property.squareFeet} m²</span>
             </div>
           </div>
         </div>
 
         <motion.button
-          className="w-full border-2 border-blue-600 text-blue-600 font-medium py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-colors"
-          whileHover={{ scale: 1.02 }}
+          className="w-full border-2 font-medium py-2 rounded-lg transition-colors"
+          style={{
+            borderColor: "var(--color-primary)",
+            color: "var(--color-primary)",
+          }}
+          whileHover={{
+            scale: 1.02,
+            backgroundColor: "var(--color-primary)",
+            color: "white",
+          }}
           whileTap={{ scale: 0.98 }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClick?.()
+          }}
         >
-          Contactar
+          Ver Detalles
         </motion.button>
       </div>
     </motion.div>

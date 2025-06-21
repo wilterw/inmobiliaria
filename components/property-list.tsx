@@ -6,9 +6,28 @@ import type { Property } from "@/app/page"
 
 interface PropertyListProps {
   properties: Property[]
+  loading?: boolean
+  onPropertyClick?: (property: Property) => void
 }
 
-export default function PropertyList({ properties }: PropertyListProps) {
+export default function PropertyList({ properties, loading, onPropertyClick }: PropertyListProps) {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="bg-white rounded-xl shadow-lg overflow-hidden animate-pulse">
+            <div className="aspect-video bg-gray-200" />
+            <div className="p-6 space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-3/4" />
+              <div className="h-3 bg-gray-200 rounded w-1/2" />
+              <div className="h-6 bg-gray-200 rounded w-1/3" />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   if (properties.length === 0) {
     return (
       <motion.div
@@ -26,7 +45,7 @@ export default function PropertyList({ properties }: PropertyListProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
       {properties.map((property, index) => (
-        <PropertyCard key={property.id} property={property} index={index} />
+        <PropertyCard key={property.id} property={property} index={index} onClick={() => onPropertyClick?.(property)} />
       ))}
     </div>
   )

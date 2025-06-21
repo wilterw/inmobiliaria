@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { motion } from "framer-motion"
 import { MapPin } from "lucide-react"
 import type { Filters } from "@/app/page"
@@ -8,12 +10,14 @@ interface FilterSidebarProps {
   filters: Filters
   setFilters: (filters: Filters) => void
   onApplyFilters: () => void
+  loading?: boolean
 }
 
-export default function FilterSidebar({ filters, setFilters, onApplyFilters }: FilterSidebarProps) {
+export default function FilterSidebar({ filters, setFilters, onApplyFilters, loading }: FilterSidebarProps) {
   const tabs = ["Compra", "Venta", "Arriendo"] as const
   const bedroomOptions = [1, 2, 3, 4, 5]
   const bathroomOptions = [1, 2, 3, 4]
+  const propertyTypes = ["Casa", "Departamento", "Oficina", "Local", "Terreno"]
 
   return (
     <motion.div
@@ -32,13 +36,34 @@ export default function FilterSidebar({ filters, setFilters, onApplyFilters }: F
               key={tab}
               onClick={() => setFilters({ ...filters, activeTab: tab })}
               className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                filters.activeTab === tab ? "bg-blue-600 text-white" : "bg-transparent text-gray-700 hover:bg-gray-200"
+                filters.activeTab === tab ? "text-white" : "bg-transparent text-gray-700 hover:bg-gray-200"
               }`}
+              style={{
+                backgroundColor: filters.activeTab === tab ? "var(--color-primary)" : "transparent",
+              }}
             >
               {tab}
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Tipo de Propiedad */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Propiedad</label>
+        <select
+          value={filters.propertyType}
+          onChange={(e) => setFilters({ ...filters, propertyType: e.target.value })}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+          style={{ "--tw-ring-color": "var(--color-primary)" } as React.CSSProperties}
+        >
+          <option value="">Todos los tipos</option>
+          {propertyTypes.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Filtro de Ubicación */}
@@ -51,7 +76,8 @@ export default function FilterSidebar({ filters, setFilters, onApplyFilters }: F
             placeholder="Ciudad, Barrio o Código Postal"
             value={filters.location}
             onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+            style={{ "--tw-ring-color": "var(--color-primary)" } as React.CSSProperties}
           />
         </div>
       </div>
@@ -65,14 +91,16 @@ export default function FilterSidebar({ filters, setFilters, onApplyFilters }: F
             placeholder="Mínimo"
             value={filters.priceMin}
             onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })}
-            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+            style={{ "--tw-ring-color": "var(--color-primary)" } as React.CSSProperties}
           />
           <input
             type="number"
             placeholder="Máximo"
             value={filters.priceMax}
             onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })}
-            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+            style={{ "--tw-ring-color": "var(--color-primary)" } as React.CSSProperties}
           />
         </div>
       </div>
@@ -95,8 +123,11 @@ export default function FilterSidebar({ filters, setFilters, onApplyFilters }: F
                   })
                 }
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  filters.bedrooms === num ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  filters.bedrooms === num ? "text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
+                style={{
+                  backgroundColor: filters.bedrooms === num ? "var(--color-primary)" : undefined,
+                }}
               >
                 {num === 5 ? "5+" : num}
               </button>
@@ -118,8 +149,11 @@ export default function FilterSidebar({ filters, setFilters, onApplyFilters }: F
                   })
                 }
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  filters.bathrooms === num ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  filters.bathrooms === num ? "text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
+                style={{
+                  backgroundColor: filters.bathrooms === num ? "var(--color-primary)" : undefined,
+                }}
               >
                 {num === 4 ? "4+" : num}
               </button>
@@ -131,11 +165,13 @@ export default function FilterSidebar({ filters, setFilters, onApplyFilters }: F
       {/* Botón de Aplicar */}
       <motion.button
         onClick={onApplyFilters}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg w-full transition-colors"
+        disabled={loading}
+        className="text-white font-bold py-3 rounded-lg w-full transition-colors disabled:opacity-50"
+        style={{ backgroundColor: "var(--color-primary)" }}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
-        Aplicar Filtros
+        {loading ? "Aplicando..." : "Aplicar Filtros"}
       </motion.button>
     </motion.div>
   )

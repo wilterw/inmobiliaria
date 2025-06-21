@@ -1,90 +1,36 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import FilterSidebar from "@/components/filter-sidebar"
 import PropertyList from "@/components/property-list"
-
-// Datos de ejemplo para las propiedades
-const sampleProperties = [
-  {
-    id: 1,
-    title: "Casa Moderna en Zona Norte",
-    address: "Av. Libertador 1234, Belgrano, Buenos Aires",
-    price: 450000,
-    status: "En Venta" as const,
-    bedrooms: 3,
-    bathrooms: 2,
-    square_feet: 1200,
-    image_url: "/placeholder.svg?height=300&width=400",
-  },
-  {
-    id: 2,
-    title: "Departamento Luminoso Centro",
-    address: "Corrientes 5678, Centro, Buenos Aires",
-    price: 2800,
-    status: "En Arriendo" as const,
-    bedrooms: 2,
-    bathrooms: 1,
-    square_feet: 850,
-    image_url: "/placeholder.svg?height=300&width=400",
-  },
-  {
-    id: 3,
-    title: "Penthouse con Vista al Río",
-    address: "Puerto Madero 9012, Puerto Madero, Buenos Aires",
-    price: 850000,
-    status: "En Venta" as const,
-    bedrooms: 4,
-    bathrooms: 3,
-    square_feet: 2200,
-    image_url: "/placeholder.svg?height=300&width=400",
-  },
-  {
-    id: 4,
-    title: "Casa Familiar con Jardín",
-    address: "San Martín 3456, San Isidro, Buenos Aires",
-    price: 3500,
-    status: "En Arriendo" as const,
-    bedrooms: 4,
-    bathrooms: 2,
-    square_feet: 1800,
-    image_url: "/placeholder.svg?height=300&width=400",
-  },
-  {
-    id: 5,
-    title: "Loft Industrial Renovado",
-    address: "Palermo 7890, Palermo, Buenos Aires",
-    price: 320000,
-    status: "En Venta" as const,
-    bedrooms: 1,
-    bathrooms: 1,
-    square_feet: 600,
-    image_url: "/placeholder.svg?height=300&width=400",
-  },
-  {
-    id: 6,
-    title: "Duplex con Terraza",
-    address: "Recoleta 2468, Recoleta, Buenos Aires",
-    price: 4200,
-    status: "En Arriendo" as const,
-    bedrooms: 3,
-    bathrooms: 2,
-    square_feet: 1400,
-    image_url: "/placeholder.svg?height=300&width=400",
-  },
-]
+import { useTheme } from "@/components/theme-provider"
+import PropertyDetailModal from "@/components/property-detail-modal"
 
 export type Property = {
-  id: number
+  id: string
   title: string
+  description?: string
   address: string
+  city: string
+  state: string
   price: number
-  status: "En Venta" | "En Arriendo"
+  status: string
+  propertyType: string
   bedrooms: number
   bathrooms: number
-  square_feet: number
-  image_url: string
+  squareFeet: number
+  yearBuilt?: number
+  parking: number
+  images: string[]
+  features: string[]
+  latitude?: number
+  longitude?: number
+  contactName?: string
+  contactEmail?: string
+  contactPhone?: string
+  contactLink?: string
+  isFeatured: boolean
 }
 
 export type Filters = {
@@ -94,9 +40,15 @@ export type Filters = {
   priceMax: string
   bedrooms: number | null
   bathrooms: number | null
+  propertyType: string
 }
 
 export default function RealEstatePortal() {
+  const { config } = useTheme()
+  const [properties, setProperties] = useState<Property[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   const [filters, setFilters] = useState<Filters>({
     activeTab: "Compra",
     location: "",
@@ -104,35 +56,67 @@ export default function RealEstatePortal() {
     priceMax: "",
     bedrooms: null,
     bathrooms: null,
+    propertyType: "",
   })
 
-  const [filteredProperties, setFilteredProperties] = useState<Property[]>(sampleProperties)
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const applyFilters = () => {
-    const filtered = sampleProperties.filter((property) => {
-      // Filtro por estado
-      if (filters.activeTab === "Venta" && property.status !== "En Venta") return false
-      if (filters.activeTab === "Arriendo" && property.status !== "En Arriendo") return false
+  const fetchProperties = async (currentFilters?: Filters) => {
+    try {
+      setLoading(true)
+      setError(null)
 
-      // Filtro por ubicación
-      if (filters.location && !property.address.toLowerCase().includes(filters.location.toLowerCase())) {
-        return false
+      const queryParams = new URLSearchParams()
+      const filtersToUse = currentFilters || filters
+
+      if (filtersToUse.location) queryParams.append("location", filtersToUse.location)
+      if (filtersToUse.priceMin) queryParams.append("priceMin", filtersToUse.priceMin)
+      if (filtersToUse.priceMax) queryParams.append("priceMax", filtersToUse.priceMax)
+      if (filtersToUse.bedrooms) queryParams.append("bedrooms", filtersToUse.bedrooms.toString())
+      if (filtersToUse.bathrooms) queryParams.append("bathrooms", filtersToUse.bathrooms.toString())
+      if (filtersToUse.propertyType) queryParams.append("propertyType", filtersToUse.propertyType)
+      if (filtersToUse.activeTab !== "Compra") queryParams.append("status", filtersToUse.activeTab)
+
+      const response = await fetch(`/api/properties?${queryParams}`)
+
+      if (!response.ok) {
+        throw new Error("Error al cargar las propiedades")
       }
 
-      // Filtro por precio
-      if (filters.priceMin && property.price < Number.parseInt(filters.priceMin)) return false
-      if (filters.priceMax && property.price > Number.parseInt(filters.priceMax)) return false
+      const data = await response.json()
+      setProperties(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido")
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      // Filtro por dormitorios
-      if (filters.bedrooms && property.bedrooms < filters.bedrooms) return false
+  useEffect(() => {
+    fetchProperties()
+  }, [])
 
-      // Filtro por baños
-      if (filters.bathrooms && property.bathrooms < filters.bathrooms) return false
+  const applyFilters = () => {
+    fetchProperties(filters)
+  }
 
-      return true
-    })
+  const openPropertyModal = (property: Property) => {
+    setSelectedProperty(property)
+    setIsModalOpen(true)
+  }
 
-    setFilteredProperties(filtered)
+  const closePropertyModal = () => {
+    setSelectedProperty(null)
+    setIsModalOpen(false)
+  }
+
+  if (!config) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <div className="text-lg">Cargando...</div>
+      </div>
+    )
   }
 
   return (
@@ -145,25 +129,29 @@ export default function RealEstatePortal() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Encuentra tu Próximo Hogar</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Descubre las mejores propiedades en las ubicaciones más exclusivas. Tu hogar ideal te está esperando.
-          </p>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">{config.siteName}</h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">{config.siteDescription}</p>
         </motion.div>
+
+        {/* Error State */}
+        {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">{error}</div>}
 
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
           {/* Filter Sidebar */}
           <div className="md:col-span-3">
-            <FilterSidebar filters={filters} setFilters={setFilters} onApplyFilters={applyFilters} />
+            <FilterSidebar filters={filters} setFilters={setFilters} onApplyFilters={applyFilters} loading={loading} />
           </div>
 
           {/* Property List */}
           <div className="md:col-span-9">
-            <PropertyList properties={filteredProperties} />
+            <PropertyList properties={properties} loading={loading} onPropertyClick={openPropertyModal} />
           </div>
         </div>
       </div>
+
+      {/* Modal de detalles */}
+      <PropertyDetailModal property={selectedProperty} isOpen={isModalOpen} onClose={closePropertyModal} />
     </div>
   )
 }

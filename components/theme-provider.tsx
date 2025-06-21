@@ -1,11 +1,31 @@
-'use client'
+"use client"
 
-import * as React from 'react'
-import {
-  ThemeProvider as NextThemesProvider,
-  type ThemeProviderProps,
-} from 'next-themes'
+import type React from "react"
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+import { createContext, useContext } from "react"
+import { useSiteConfig } from "@/hooks/use-site-config"
+
+interface ThemeContextType {
+  config: any
+  themes: any[]
+  updateConfig: (config: any) => Promise<any>
+  activateTheme: (themeId: string) => Promise<any>
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const { config, themes, updateConfig, activateTheme } = useSiteConfig()
+
+  return (
+    <ThemeContext.Provider value={{ config, themes, updateConfig, activateTheme }}>{children}</ThemeContext.Provider>
+  )
+}
+
+export function useTheme() {
+  const context = useContext(ThemeContext)
+  if (context === undefined) {
+    throw new Error("useTheme must be used within a ThemeProvider")
+  }
+  return context
 }
